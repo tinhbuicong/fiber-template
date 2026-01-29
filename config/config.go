@@ -8,11 +8,30 @@ import (
 
 // Config represents application configuration
 type Config struct {
-	Server   ServerConfig
-	Database DatabaseConfig
-	JWT      JWTConfig
-	Redis    RedisConfig
-	Mail     MailConfig
+	Server    ServerConfig
+	Database  DatabaseConfig
+	JWT       JWTConfig
+	Redis     RedisConfig
+	Mail      MailConfig
+	Log       LogConfig
+	RateLimit RateLimitConfig
+}
+
+// RateLimitConfig for limiter middleware
+type RateLimitConfig struct {
+	Max        int           // max requests per window
+	Expiration time.Duration // window duration (e.g. 1 minute)
+	Enabled    bool          // enable/disable rate limiter
+}
+
+// LogConfig represents file logging configuration (Zap + Lumberjack)
+type LogConfig struct {
+	Dir          string // directory for log files
+	Filename     string // base filename, e.g. app.log
+	MaxDays     int    // keep N days of history
+	MaxSizeMB   int    // max size per file in MB before rotate
+	Compress    bool   // compress rotated files
+	MaxBackups  int    // max number of old files to retain
 }
 
 // ServerConfig represents server configuration
@@ -97,6 +116,19 @@ func Load() *Config {
 			Password: getEnv("MAIL_PASSWORD", ""),
 			From:     getEnv("MAIL_FROM", "noreply@example.com"),
 			FromName: getEnv("MAIL_FROM_NAME", "Fiber Template"),
+		},
+		Log: LogConfig{
+			Dir:         getEnv("LOG_DIR", "./storage/logs"),
+			Filename:    getEnv("LOG_FILENAME", "app.log"),
+			MaxDays:     getEnvInt("LOG_MAX_DAYS", 7),
+			MaxSizeMB:   getEnvInt("LOG_MAX_SIZE_MB", 100),
+			Compress:    getEnv("LOG_COMPRESS", "true") == "true",
+			MaxBackups:  getEnvInt("LOG_MAX_BACKUPS", 7),
+		},
+		RateLimit: RateLimitConfig{
+			Max:        getEnvInt("RATELIMIT_MAX", 60),
+			Expiration: getDuration("RATELIMIT_EXPIRATION", time.Minute),
+			Enabled:    getEnv("RATELIMIT_ENABLED", "true") == "true",
 		},
 	}
 }

@@ -11,8 +11,8 @@ import (
 
 var DB *gorm.DB
 
-func ConnectDB() {
-	// Lấy thông tin từ .env (đã hướng dẫn ở bước trước)
+// ConnectDB connects to PostgreSQL and sets DB. Returns error on failure (DB stays nil).
+func ConnectDB() error {
 	dsn := fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%s sslmode=disable",
 		os.Getenv("DB_HOST"),
 		os.Getenv("DB_USER"),
@@ -23,9 +23,9 @@ func ConnectDB() {
 
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
-		log.Fatal("Failed to connect to database:", err)
+		return fmt.Errorf("connect database: %w", err)
 	}
-
-	fmt.Println("Database connection established")
 	DB = db
+	log.Println("Database connection established")
+	return nil
 }
