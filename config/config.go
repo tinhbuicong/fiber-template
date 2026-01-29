@@ -17,21 +17,28 @@ type Config struct {
 	RateLimit RateLimitConfig
 }
 
-// RateLimitConfig for limiter middleware
+// RateLimitConfig for limiter middleware (per-zone)
 type RateLimitConfig struct {
-	Max        int           // max requests per window
-	Expiration time.Duration // window duration (e.g. 1 minute)
-	Enabled    bool          // enable/disable rate limiter
+	Enabled          bool // enable/disable all rate limiters
+	PublicMax        int  // Public (/, /health) – default 100 req/min
+	PublicExpiration time.Duration
+	AuthMax          int // Auth (/api/v1/auth/*) – default 5 req/min
+	AuthExpiration   time.Duration
+	LogsMax          int // Logs (/api/v1/logs) – default 2 req/min
+	LogsExpiration   time.Duration
+	// Legacy single-zone (optional)
+	Max        int
+	Expiration time.Duration
 }
 
 // LogConfig represents file logging configuration (Zap + Lumberjack)
 type LogConfig struct {
-	Dir          string // directory for log files
-	Filename     string // base filename, e.g. app.log
-	MaxDays     int    // keep N days of history
-	MaxSizeMB   int    // max size per file in MB before rotate
-	Compress    bool   // compress rotated files
-	MaxBackups  int    // max number of old files to retain
+	Dir        string // directory for log files
+	Filename   string // base filename, e.g. app.log
+	MaxDays    int    // keep N days of history
+	MaxSizeMB  int    // max size per file in MB before rotate
+	Compress   bool   // compress rotated files
+	MaxBackups int    // max number of old files to retain
 }
 
 // ServerConfig represents server configuration
@@ -118,17 +125,23 @@ func Load() *Config {
 			FromName: getEnv("MAIL_FROM_NAME", "Fiber Template"),
 		},
 		Log: LogConfig{
-			Dir:         getEnv("LOG_DIR", "./storage/logs"),
-			Filename:    getEnv("LOG_FILENAME", "app.log"),
-			MaxDays:     getEnvInt("LOG_MAX_DAYS", 7),
-			MaxSizeMB:   getEnvInt("LOG_MAX_SIZE_MB", 100),
-			Compress:    getEnv("LOG_COMPRESS", "true") == "true",
-			MaxBackups:  getEnvInt("LOG_MAX_BACKUPS", 7),
+			Dir:        getEnv("LOG_DIR", "./storage/logs"),
+			Filename:   getEnv("LOG_FILENAME", "app.log"),
+			MaxDays:    getEnvInt("LOG_MAX_DAYS", 7),
+			MaxSizeMB:  getEnvInt("LOG_MAX_SIZE_MB", 100),
+			Compress:   getEnv("LOG_COMPRESS", "true") == "true",
+			MaxBackups: getEnvInt("LOG_MAX_BACKUPS", 7),
 		},
 		RateLimit: RateLimitConfig{
-			Max:        getEnvInt("RATELIMIT_MAX", 60),
-			Expiration: getDuration("RATELIMIT_EXPIRATION", time.Minute),
-			Enabled:    getEnv("RATELIMIT_ENABLED", "true") == "true",
+			Enabled:          getEnv("RATELIMIT_ENABLED", "true") == "true",
+			PublicMax:        getEnvInt("RATELIMIT_PUBLIC_MAX", 100),
+			PublicExpiration: getDuration("RATELIMIT_PUBLIC_EXPIRATION", time.Minute),
+			AuthMax:          getEnvInt("RATELIMIT_AUTH_MAX", 5),
+			AuthExpiration:   getDuration("RATELIMIT_AUTH_EXPIRATION", time.Minute),
+			LogsMax:          getEnvInt("RATELIMIT_LOGS_MAX", 2),
+			LogsExpiration:   getDuration("RATELIMIT_LOGS_EXPIRATION", time.Minute),
+			Max:              getEnvInt("RATELIMIT_MAX", 60),
+			Expiration:       getDuration("RATELIMIT_EXPIRATION", time.Minute),
 		},
 	}
 }

@@ -8,23 +8,14 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/limiter"
 )
 
-// RateLimiter returns Fiber rate limiter middleware.
-// Giới hạn số request theo IP trong một khoảng thời gian (mặc định 60 req/phút).
-// Cấu hình qua env: RATELIMIT_MAX, RATELIMIT_EXPIRATION, RATELIMIT_ENABLED.
-func RateLimiter(cfg *config.RateLimitConfig) fiber.Handler {
-	if cfg == nil || !cfg.Enabled {
-		return func(c *fiber.Ctx) error { return c.Next() }
-	}
-
-	max := cfg.Max
+// RateLimiterWith returns a rate limiter for a given max and expiration (per-zone use).
+func RateLimiterWith(max int, expiration time.Duration) fiber.Handler {
 	if max < 1 {
 		max = 60
 	}
-	expiration := cfg.Expiration
 	if expiration < time.Second {
 		expiration = time.Minute
 	}
-
 	return limiter.New(limiter.Config{
 		Max:        max,
 		Expiration: expiration,
@@ -38,4 +29,21 @@ func RateLimiter(cfg *config.RateLimitConfig) fiber.Handler {
 			})
 		},
 	})
+}
+
+// RateLimiter returns Fiber rate limiter middleware (legacy single-zone).
+// Cấu hình qua env: RATELIMIT_MAX, RATELIMIT_EXPIRATION, RATELIMIT_ENABLED.
+func RateLimiter(cfg *config.RateLimitConfig) fiber.Handler {
+	if cfg == nil || !cfg.Enabled {
+		return func(c *fiber.Ctx) error { return c.Next() }
+	}
+	max := cfg.Max
+	if max < 1 {
+		max = 60
+	}
+	expiration := cfg.Expiration
+	if expiration < time.Second {
+		expiration = time.Minute
+	}
+	return RateLimiterWith(max, expiration)
 }

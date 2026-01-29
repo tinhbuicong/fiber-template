@@ -1,0 +1,33 @@
+# Promtail – đọc log từ thư mục app (mount vào container), đẩy lên Loki
+# Log app: Zap JSON tại /var/log/fiber (map từ host ./storage/logs)
+
+server:
+  http_listen_port: 9080
+  grpc_listen_port: 0
+
+positions:
+  filename: /tmp/positions.yaml
+
+clients:
+  - url: http://loki:3100/loki/api/v1/push
+    tenant_id: default
+
+scrape_configs:
+  - job_name: fiber-template
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: fiber-template
+          __path__: /var/log/fiber/*.log
+    # Mỗi dòng là JSON từ Zap; trong Grafana dùng LogQL: | json | status>=400
+    pipeline_stages:
+      - json:
+          expressions:
+            level: level
+            method: method
+            status: status
+            latency_ms: latency_ms
+            ip: ip
+      - labels:
+          level:

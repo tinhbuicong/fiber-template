@@ -12,8 +12,8 @@ import (
 
 var Log *zap.Logger
 
-// Init initializes Zap with standard Production config + Lumberjack for file rotation.
-// Uses Zap's built-in encoder config to avoid nil panic in custom encoder.
+// Init initializes Zap: ghi log ra file JSON (một dòng một bản ghi) để Promtail/Loki parse field tự động.
+// Lumberjack rotate file; output tương thích Loki (JSON, field rõ ràng).
 func Init(cfg *config.LogConfig) error {
 	if cfg == nil {
 		cfg = &config.LogConfig{

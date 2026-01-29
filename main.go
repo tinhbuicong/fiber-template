@@ -3,10 +3,6 @@ package main
 import (
 	"fiber-template/config"
 	logMiddleware "fiber-template/internal/logs/middleware"
-	"fiber-template/internal/logs/models"
-	"fiber-template/internal/logs/repository/postgres"
-	"fiber-template/internal/logs/services"
-	"fiber-template/internal/middleware"
 	"fiber-template/internal/routes"
 	"fiber-template/pkg/database"
 	"fiber-template/pkg/logger"
@@ -40,10 +36,7 @@ func main() {
 	if database.DB == nil {
 		log.Fatal("database.DB is nil after ConnectDB")
 	}
-	if err := database.DB.AutoMigrate(&models.ApiLog{}); err != nil {
-		log.Fatalf("AutoMigrate api_logs: %v", err)
-	}
-	log.Println("Database connection established and Migrated")
+	log.Println("Database connection established")
 
 	// Zap + Lumberjack: daily rotation, 7 days, compress, ./storage/logs/app.log
 	if err := logger.Init(&cfg.Log); err != nil {
@@ -68,16 +61,12 @@ func main() {
 		},
 	})
 
-	// Log service for middleware (async save to DB + file log)
-	logRepo := postgres.NewLogRepository(database.DB)
-	logSvc := services.NewLogService(logRepo)
-
+	// Log: chỉ ghi file JSON (Zap) → Promtail/Loki; Postgres không lưu log
 	app.Use(recover.New(recover.Config{EnableStackTrace: true}))
 	app.Use(cors.New())
-	app.Use(middleware.RateLimiter(&cfg.RateLimit))
-	app.Use(logMiddleware.ApiLogger(logSvc))
+	app.Use(logMiddleware.ApiLogger())
 
-	routes.RegisterRoutes(app)
+	routes.RegisterRoutes(app, &cfg.RateLimit)
 
 	log.Fatal(app.Listen("127.0.0.1:" + port))
 }

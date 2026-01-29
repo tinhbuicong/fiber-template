@@ -9,12 +9,12 @@ import (
 	"github.com/gofiber/fiber/v2"
 )
 
-// MapRoutes registers log routes on the given router (e.g. api.Group("/api/v1"))
+// MapRoutes registers log routes on the given router (caller passes the /logs group with limiter).
+// Full path: GET /api/v1/logs
 func MapRoutes(router fiber.Router) {
 	repo := postgres.NewLogRepository(database.DB)
 	svc := services.NewLogService(repo)
 	handler := handlers.NewLogHandler(svc)
 
-	logs := router.Group("/logs")
-	logs.Get("/", handler.GetLogs)
+	router.Get("/", handler.GetLogs)
 }
