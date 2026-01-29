@@ -1,13 +1,13 @@
 package main
 
 import (
+	loggerMiddleware "fiber-template/internal/logs/middleware"
 	"fiber-template/internal/routes"
 	"log"
 	"os"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
-	"github.com/gofiber/fiber/v2/middleware/logger"
 	"github.com/gofiber/fiber/v2/middleware/recover"
 	"github.com/joho/godotenv"
 )
@@ -31,9 +31,10 @@ func main() {
 	})
 
 	// Middleware
-	app.Use(logger.New())
+	// app.Use(logger.New())
 	app.Use(recover.New())
 	app.Use(cors.New())
+	app.Use(loggerMiddleware.ApiLogger())
 
 	// Setup auth routes
 	routes.RegisterRoutes(app)
