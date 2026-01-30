@@ -1,0 +1,14 @@
+# Alertmanager: nhận alert từ Prometheus (xem readme: Hệ thống logs)
+global:
+  resolve_timeout: 5m
+
+route:
+  group_by: ["alertname"]
+  group_wait: 30s
+  group_interval: 5m
+  repeat_interval: 1h
+  receiver: "default"
+
+receivers:
+  - name: "default"
+    # Thêm email_configs / webhook_configs khi cần gửi thông báo

@@ -14,7 +14,13 @@ type Config struct {
 	Redis     RedisConfig
 	Mail      MailConfig
 	Log       LogConfig
+	Metrics   MetricsConfig
 	RateLimit RateLimitConfig
+}
+
+// MetricsConfig for Prometheus /metrics endpoint (App → Prometheus → Alertmanager)
+type MetricsConfig struct {
+	Port string // METRICS_PORT, default 9091
 }
 
 // RateLimitConfig for limiter middleware (per-zone)
@@ -131,6 +137,9 @@ func Load() *Config {
 			MaxSizeMB:  getEnvInt("LOG_MAX_SIZE_MB", 100),
 			Compress:   getEnv("LOG_COMPRESS", "true") == "true",
 			MaxBackups: getEnvInt("LOG_MAX_BACKUPS", 7),
+		},
+		Metrics: MetricsConfig{
+			Port: getEnv("METRICS_PORT", "9091"),
 		},
 		RateLimit: RateLimitConfig{
 			Enabled:          getEnv("RATELIMIT_ENABLED", "true") == "true",

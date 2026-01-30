@@ -1,10 +1,44 @@
-# Grafana + Loki + Promtail
+# Mô hình: App → Metrics → Prometheus → Alertmanager
+#          App → Logs → Promtail → Loki → Grafana
 # Chạy từ thư mục gốc project (fiber-template):
 #   docker compose -f deploy/docker-compose.logging.yml up -d
 #
-# App ghi log ra ./storage/logs/app.log; Promtail mount ../storage/logs (từ deploy/).
+# App: ghi log ra ./storage/logs/app.log; expose /metrics (vd. port 9091).
 
 services:
+  # --- Metrics: Prometheus → Alertmanager ---
+  prometheus:
+    image: prom/prometheus:v2.52.0
+    container_name: prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --web.enable-lifecycle
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      - alertmanager
+    restart: unless-stopped
+
+  alertmanager:
+    image: prom/alertmanager:v0.27.0
+    container_name: alertmanager
+    ports:
+      - "9093:9093"
+    volumes:
+      - ./alertmanager/alertmanager.yml:/etc/alertmanager/config.yml:ro
+      - alertmanager-data:/alertmanager
+    command:
+      - --config.file=/etc/alertmanager/config.yml
+      - --storage.path=/alertmanager
+    restart: unless-stopped
+
+  # --- Logs: Promtail → Loki ---
   loki:
     image: grafana/loki:2.9.4
     container_name: loki
@@ -49,8 +83,8 @@ services:
       GF_DATABASE_TYPE: postgres
       GF_DATABASE_HOST: host.docker.internal
       GF_DATABASE_NAME: grafana
-      GF_DATABASE_USER: ${DB_USER:-postgres}
-      GF_DATABASE_PASSWORD: ${DB_PASSWORD:-postgres}
+      GF_DATABASE_USER: ${DB_USER:-app_user}
+      GF_DATABASE_PASSWORD: ${DB_PASSWORD:-strong_password}
       GF_DATABASE_PORT: ${DB_PORT:-5432}
       GF_DATABASE_SSL_MODE: disable
     extra_hosts:
@@ -69,5 +103,7 @@ services:
       retries: 3
 
 volumes:
+  prometheus-data:
+  alertmanager-data:
   loki-data:
   grafana-data:

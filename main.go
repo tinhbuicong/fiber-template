@@ -6,6 +6,7 @@ import (
 	"fiber-template/internal/routes"
 	"fiber-template/pkg/database"
 	"fiber-template/pkg/logger"
+	"fiber-template/pkg/metrics"
 	"log"
 	"os"
 
@@ -67,6 +68,9 @@ func main() {
 	app.Use(logMiddleware.ApiLogger())
 
 	routes.RegisterRoutes(app, &cfg.RateLimit)
+
+	// Metrics: App → Prometheus → Alertmanager (port từ METRICS_PORT, mặc định 9091)
+	go metrics.Serve("127.0.0.1:" + cfg.Metrics.Port)
 
 	log.Fatal(app.Listen("127.0.0.1:" + port))
 }
